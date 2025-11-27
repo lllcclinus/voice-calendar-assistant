@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>语音日程助手</title>
+</head>
+<body>
+  <h1>语音驱动的日程助手</h1>
+  <button id="start-btn">开始语音对话</button>
+  <div id="log"></div>
+
+  <script>
+    const logDiv = document.getElementById('log');
+    const startBtn = document.getElementById('start-btn');
+
+    // 浏览器语音识别（Chrome 下是 webkitSpeechRecognition）
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'zh-CN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    // 文本转语音
+    function speak(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'zh-CN';
+      window.speechSynthesis.speak(utter);
+    }
+
+    function appendLog(role, text) {
+      const p = document.createElement('p');
+      p.textContent = role + ': ' + text;
+      logDiv.appendChild(p);
+    }
+
+    async function sendToBackend(text) {
+      appendLog('用户', text);
+      try {
+        const resp = await fetch('http://127.0.0.1:8000/api/message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        const data = await resp.json();
+        appendLog('助手', data.text);
+        speak(data.text);
+      } catch (e) {
+        console.error(e);
+        appendLog('系统', '后端请求失败');
+        speak('后端请求失败，请检查服务是否运行。');
+      }
+    }
+
+    startBtn.onclick = () => {
+      recognition.start();
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      sendToBackend(transcript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error', event.error);
+      appendLog('系统', '语音识别失败：' + event.error);
+      speak('语音识别失败，请重试。');
+    };
+
+    // 页面加载后请后端说一句开场白
+    window.onload = async () => {
+      const resp = await fetch('http://127.0.0.1:8000/api/welcome');
+      const data = await resp.json();
+      appendLog('助手', data.text);
+      speak(data.text);
+    };
+  </script>
+</body>
+</html>
