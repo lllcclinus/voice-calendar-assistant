@@ -2,6 +2,7 @@
 import re
 from datetime import datetime, timedelta
 from typing import Optional, Dict
+from logger import logger
 
 # 中文数字映射
 CN_NUM = {
@@ -111,9 +112,11 @@ def parse_schedule_from_text(text: str) -> Optional[Dict]:
         或 None（解析失败）
     """
     if not text:
+        logger.warning("[NLP] empty text")
         return None
 
     raw = text
+    logger.info(f"[NLP] raw text = {raw!r}")
     # 去掉空格，语音识别经常会插入空格
     text = raw.replace(" ", "")
 
@@ -157,6 +160,7 @@ def parse_schedule_from_text(text: str) -> Optional[Dict]:
         match_obj = m
 
     if match_obj is None or start_hour is None or end_hour is None:
+        logger.warning(f"[NLP] fail to parse time range, text={text!r}")
         # 没有识别到时间段
         return None
 
@@ -165,6 +169,9 @@ def parse_schedule_from_text(text: str) -> Optional[Dict]:
         start_hour += 12
     if (is_pm or is_night) and end_hour <= 12:
         end_hour += 12
+
+
+    
 
     start_dt = datetime(
         year=base_date.year,
@@ -194,8 +201,19 @@ def parse_schedule_from_text(text: str) -> Optional[Dict]:
         if title.startswith(prefix):
             title = title[len(prefix):]
 
+    title = title.strip()
+
+    # 去掉結尾句號、驚嘆號、問號等
+    title = title.rstrip("。．.!！?？;； ")
+
     if not title:
         title = "未命名日程"
+
+    logger.info(
+        f"[NLP] parsed: date={base_date}, "
+        f"start_hour={start_hour}, end_hour={end_hour}, title={title!r}"
+    )
+
 
     return {
         "start": start_dt,

@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from voice_bot import handle_user_message, welcome_text
+from logger import logger
 
 app = FastAPI(
     title="Voice Calendar Assistant",
@@ -27,9 +28,17 @@ class BotReply(BaseModel):
 
 @app.get("/api/welcome", response_model=BotReply)
 async def get_welcome():
+    logger.info("[HTTP] /api/welcome")
     return BotReply(text=welcome_text)
 
 @app.post("/api/message", response_model=BotReply)
 async def post_message(msg: Message):
-    reply = await handle_user_message(msg.text)
-    return BotReply(text=reply)
+    logger.info(f"[HTTP] /api/message text={msg.text!r}")
+    try:
+        reply = await handle_user_message(msg.text)
+        logger.info(f"[HTTP] reply={reply!r}")
+        return BotReply(text=reply)
+    except Exception as e:
+        logger.error("[HTTP] /api/message error", exc_info=True)
+        # 回傳一個穩定的錯誤訊息，前端會唸出來
+        return {"text": "在操作谷歌日历时发生错误，请稍后再试。"}
