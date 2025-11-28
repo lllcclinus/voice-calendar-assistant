@@ -1,14 +1,10 @@
 # backend/voice_bot.py
+from datetime import datetime
 from typing import Optional, Dict, Any
-from fastapi.concurrency import run_in_threadpool
-
 from nlp_parser import parse_schedule_from_text
-from calendar_agent import create_event_with_conflict_check_sync
-import re
-from datetime import datetime, timedelta
+from calendar_agent import create_event_with_conflict_check
 
 welcome_text = "您好，我是您的日程助手，你要记录什么日程？"
-
 
 # 简单全局状态（正式可以用 session / redis）
 state: Dict[str, Any] = {
@@ -18,7 +14,7 @@ state: Dict[str, Any] = {
 
 async def handle_user_message(text: str) -> str:
     global state
-    print("[debug] raw user text =", repr(text))
+
     # 第一步：解析日程
     event = parse_schedule_from_text(text)
     if event is None:
@@ -29,16 +25,10 @@ async def handle_user_message(text: str) -> str:
 
     # 调用 Playwright Agent 检查冲突并创建日程
     try:
-        # 用线程池调用同步的 Playwright 函数，避免 async 在 Windows 上的问题
-        created, conflict_info = await run_in_threadpool(
-            create_event_with_conflict_check_sync, start, end, title
-        )
+        created, conflict_info = await create_event_with_conflict_check(start, end, title)
     except Exception as e:
-        err_text = f"Playwright 出错: {repr(e)}"
-        print(err_text)
-        state["waiting_new_time"] = False
-        state["pending_event"] = None
-        return err_text
+        print("Error in calendar agent:", e)
+        return "在操作谷歌日历时发生错误，请稍后再试。"
 
     if created:
         date_str = f"{start.month}月{start.day}日 {start.hour}点"
