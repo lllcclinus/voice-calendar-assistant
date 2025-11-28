@@ -10,7 +10,7 @@ Run app:
 cd backend
 uvicorn app:app --reload
 
-Open index.html with chrome browser
+Open index.html with chrome/edge browser
 
 限制:
 現只支持以下說法:
