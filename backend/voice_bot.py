@@ -18,23 +18,10 @@ state: Dict[str, Any] = {
 
 async def handle_user_message(text: str) -> str:
     global state
-
+    print("[debug] raw user text =", repr(text))
     # 第一步：解析日程
-    if state["pending_event"] is None or not state["waiting_new_time"]:
-        event = parse_schedule_from_text(text)
-        if event is None:
-            return "我没有听清楚具体的时间或标题，请再说一遍，例如：明天上午十点到十一点，和公司CEO会议。"
-
-        state["pending_event"] = event
-    else:
-        # 用户正在重新提供时间，只更新时间，不改标题
-        event = parse_schedule_from_text(text)
-        if event is None:
-            return "我还是没听清时间，请再说一次新的时间。"
-        event["title"] = state["pending_event"]["title"]
-        state["pending_event"] = event
-
-    event = state["pending_event"]
+    event = parse_schedule_from_text(text)
+    
     start = event["start"]
     end = event["end"]
     title = event["title"]
