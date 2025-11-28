@@ -341,8 +341,8 @@ def create_event_with_conflict_check_sync(start: datetime, end: datetime, title:
                 return True, ""
             finally:
                 pass
-                #context.close()
-                #browser.close()
+                context.close()
+                browser.close()
             # 后面你的原始逻辑都放在这个 with 里面
     except Exception as e:
         import traceback
