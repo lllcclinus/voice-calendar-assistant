@@ -21,7 +21,8 @@ async def handle_user_message(text: str) -> str:
     print("[debug] raw user text =", repr(text))
     # 第一步：解析日程
     event = parse_schedule_from_text(text)
-    
+    if event is None:
+            return "我没有听清楚具体的时间或标题，请再说一遍，例如：明天上午十点到十一点，和公司CEO会议。"
     start = event["start"]
     end = event["end"]
     title = event["title"]
